@@ -48,7 +48,15 @@ public class RecordId implements Serializable {
     @Override
     public boolean equals(Object o) {
         // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        // Might be wrong, but this is a placeholder
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof RecordId)) {
+            return false;
+        }
+        RecordId other = (RecordId) o;
+        return this.getPageId().equals(other.getPageId()) && this.getTupleNumber() == other.getTupleNumber();
     }
 
     /**

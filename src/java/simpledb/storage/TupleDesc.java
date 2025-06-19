@@ -80,7 +80,7 @@ public class TupleDesc implements Serializable {
             itemList.add(item);
             totalSize += typeAr[i].getLen();
         }
-        this.items = Collections.unmodifiableList(itemList);
+        this.items = itemList;
         this.size = totalSize;
     }
 
@@ -105,7 +105,7 @@ public class TupleDesc implements Serializable {
             itemList.add(item);
             totalSize += typeAr[i].getLen();
         }
-        this.items = Collections.unmodifiableList(itemList);
+        this.items = itemList;
         this.size = totalSize;
     }
 

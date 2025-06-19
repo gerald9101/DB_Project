@@ -1,8 +1,10 @@
 package simpledb.storage;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Tuple maintains information about the contents of a tuple. Tuples have a
@@ -14,6 +16,7 @@ public class Tuple implements Serializable {
     private static final long serialVersionUID = 1L;
     private TupleDesc td;
     private RecordId recordId;
+    private List<Field> fields;
     /**
      * Create a new tuple with the specified schema (type).
      *
@@ -23,8 +26,16 @@ public class Tuple implements Serializable {
      */
     public Tuple(TupleDesc td) {
         // some code goes here
+        if (td == null || td.numFields() == 0) {
+            throw new IllegalArgumentException("TupleDesc must not be null and must have at least one field.");
+        }
         this.td = td;
         this.recordId = null;
+        ArrayList<Field> fieldList = new ArrayList<Field>();
+        for (int i = 0; i < td.numFields(); i++) {
+            fieldList.add(null); // Initialize fields to null
+        }
+        this.fields = fieldList;
     }
 
     /**
@@ -67,6 +78,13 @@ public class Tuple implements Serializable {
      */
     public void setField(int i, Field f) {
         // some code goes here
+        if (i < 0 || i >= td.numFields()) {
+            throw new IndexOutOfBoundsException("Field index out of bounds: " + i);
+        }
+        if (f == null) {
+            throw new IllegalArgumentException("Field value cannot be null.");
+        }
+        this.fields.set(i, f);
     }
 
     /**
@@ -77,7 +95,7 @@ public class Tuple implements Serializable {
      */
     public Field getField(int i) {
         // some code goes here
-        return null;
+        return this.fields.get(i);
     }
 
     /**
@@ -90,7 +108,16 @@ public class Tuple implements Serializable {
      */
     public String toString() {
         // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+        StringBuilder sb = new StringBuilder();
+        for (Field f: this.fields) {
+            if (f != null) {
+                sb.append(fields.toString());
+            } else {
+                sb.append("null");
+            }
+            sb.append("\t");
+        }
+        return sb.toString();
     }
 
     /**
@@ -100,7 +127,7 @@ public class Tuple implements Serializable {
     public Iterator<Field> fields()
     {
         // some code goes here
-        return null;
+        return fields.iterator();
     }
 
     /**
@@ -109,5 +136,6 @@ public class Tuple implements Serializable {
     public void resetTupleDesc(TupleDesc td)
     {
         // some code goes here
+        this.td = td;
     }
 }
