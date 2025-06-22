@@ -11,6 +11,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * The Catalog keeps track of all available tables in the database and their
@@ -23,12 +24,28 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Catalog {
 
+    private static class TableInfo {
+        private final DbFile file;
+        private final String name;
+        private final String pkeyField;
+        public TableInfo(DbFile file, String name, String pkeyField) {
+            this.file = file;   
+            this.name = name;
+            this.pkeyField = pkeyField;
+        }
+    }
+
+    private final ConcurrentMap<Integer, TableInfo> idToInfo;
+    private final ConcurrentMap<String, Integer> nameToID;
+
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
         // some code goes here
+        idToInfo = new ConcurrentHashMap<>();
+        nameToID = new ConcurrentHashMap<>();
     }
 
     /**
@@ -42,6 +59,32 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+        if (file == null) {
+            throw new IllegalArgumentException("DbFile cannot be null");
+        }
+        if (name == null) {
+            throw new IllegalArgumentException("Table name cannot be null");
+        }
+        if (pkeyField == null) {
+            throw new IllegalArgumentException("Primary key field cannot be null");
+        }   
+        int tableId = file.getId();
+
+        Integer existingName = nameToID.get(name);
+        // If a table with the same name exists, remove it
+        if (existingName != null && !existingName.equals(tableId)) {
+            idToInfo.remove(existingName);
+        }
+
+        TableInfo existingId = idToInfo.get(tableId);
+        // If a table with the same ID exists, remove it
+        if (existingId != null && !existingId.name.equals(name)) {
+            nameToID.remove(existingId.name);
+        }
+
+        TableInfo newTableInfo = new TableInfo(file, name, pkeyField);
+        idToInfo.put(tableId, newTableInfo);
+        nameToID.put(name, tableId);
     }
 
     public void addTable(DbFile file, String name) {
@@ -65,7 +108,14 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+        if (name == null) {
+            throw new NoSuchElementException("Table name cannot be null");
+        }
+        Integer tableId = nameToID.get(name);
+        if (tableId == null) {
+            throw new NoSuchElementException("Table with name " + name + " does not exist");
+        }
+        return tableId;
     }
 
     /**
@@ -76,7 +126,11 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        TableInfo tableInfo = idToInfo.get(tableid);
+        if (tableInfo == null) {
+            throw new NoSuchElementException("Table with id " + tableid + " does not exist");
+        }
+        return tableInfo.file.getTupleDesc();
     }
 
     /**
@@ -87,27 +141,41 @@ public class Catalog {
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        TableInfo tableInfo = idToInfo.get(tableid);
+        if (tableInfo == null) {
+            throw new NoSuchElementException("Table with id " + tableid + " does not exist");
+        }
+        return tableInfo.file;
     }
 
     public String getPrimaryKey(int tableid) {
         // some code goes here
-        return null;
+        TableInfo tableInfo = idToInfo.get(tableid);
+        if (tableInfo == null) {
+            throw new NoSuchElementException("Table with id " + tableid + " does not exist");
+        }
+        return tableInfo.pkeyField;
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return idToInfo.keySet().iterator();
     }
 
     public String getTableName(int id) {
         // some code goes here
-        return null;
+        TableInfo tableInfo = idToInfo.get(id);
+        if (tableInfo == null) {
+            throw new NoSuchElementException("Table with id " + id + " does not exist");
+        }
+        return tableInfo.name;
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+        idToInfo.clear();
+        nameToID.clear();
     }
     
     /**
