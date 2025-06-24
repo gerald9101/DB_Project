@@ -10,6 +10,7 @@ import simpledb.transaction.TransactionId;
 import java.io.*;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -33,6 +34,10 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    private int numPages = DEFAULT_PAGES;
+
+    private final ConcurrentHashMap<PageId, Page> pageCache = new ConcurrentHashMap<>();
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -40,6 +45,10 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+        if (numPages <= 0) {
+            throw new IllegalArgumentException("Number of pages must be greater than 0");
+        }
+        this.numPages = numPages;
     }
     
     public static int getPageSize() {
@@ -74,7 +83,26 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        Page p = pageCache.get(pid);
+        if (p != null) {
+            // Page is already in the buffer pool, return it
+            return p;
+        }
+        // Page is not in the buffer pool, we need to load it
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        p = dbFile.readPage(pid);
+
+        if (pageCache.size() >= numPages) {
+            // Buffer pool is full, we need to evict a page
+            try {   
+                evictPage();
+            } catch (DbException e) {
+                throw new DbException("Failed to evict page: " + e.getMessage());
+            }
+        }
+        // Add the new page to the buffer pool
+        pageCache.put(pid, p);
+        return p;
     }
 
     /**
